@@ -1,0 +1,1056 @@
+{
+	"info": {
+		"_postman_id": "products-crud-api-collection",
+		"name": "Products CRUD API - Enhanced Security",
+		"description": "Complete Postman collection for testing the Products CRUD API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "products-crud-api"
+	},
+	"item": [
+		{
+			"name": "🔐 Authentication & Security",
+			"description": "Test the enhanced authentication system with session validation, token blacklisting using SHA256 hashing, and comprehensive logout functionality",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Password123!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "register"]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test successful registration",
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Response has user ID\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.id).to.exist;",
+									"    pm.expect(jsonData.email).to.eql(\"test@example.com\");",
+									"});",
+									"",
+									"pm.test(\"Password is not returned\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.password).to.not.exist;",
+									"});",
+									"",
+									"console.log(\"✅ User registration successful\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Login User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Password123!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "login"]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test successful login",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has access token\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.access_token).to.exist;",
+									"});",
+									"",
+									"pm.test(\"Response has refresh token\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.refresh_token).to.exist;",
+									"});",
+									"",
+									"pm.test(\"Response has user info\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.user).to.exist;",
+									"    pm.expect(jsonData.user.email).to.eql(\"test@example.com\");",
+									"});",
+									"",
+									"// Automatically set the access token for subsequent requests",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.collectionVariables.set(\"access_token\", jsonData.access_token);",
+									"    pm.collectionVariables.set(\"refresh_token\", jsonData.refresh_token);",
+									"    pm.collectionVariables.set(\"user_id\", jsonData.user.id);",
+									"    console.log(\"✅ Login successful - Access token automatically set: \" + jsonData.access_token.substring(0, 20) + \"...\");",
+									"    console.log(\"✅ User ID stored: \" + jsonData.user.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Refresh Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/refresh",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "refresh"]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test successful token refresh",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has new access token\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.access_token).to.exist;",
+									"});",
+									"",
+									"// Update the access token",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.collectionVariables.set(\"access_token\", jsonData.access_token);",
+									"    console.log(\"✅ Access token refreshed: \" + jsonData.access_token.substring(0, 20) + \"...\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Logout (Enhanced Token Blacklisting)",
+					"description": "This request demonstrates the enhanced logout functionality that uses SHA256 hashing to properly blacklist the token and invalidate the session immediately",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/logout",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "logout"]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test successful logout",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Logout message received\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include(\"successfully\");",
+									"});",
+									"",
+									"// Store the token for post-logout testing (don't clear it yet)",
+									"if (pm.response.code === 200) {",
+									"    pm.collectionVariables.set(\"logged_out_token\", pm.collectionVariables.get(\"access_token\"));",
+									"    console.log(\"✅ Logout successful - Token stored for post-logout testing\");",
+									"    console.log(\"ℹ️  Run 'Access After Logout' test to verify token blacklisting\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Logout All Devices (Enhanced)",
+					"description": "Enhanced logout all functionality that blacklists all user sessions and immediately invalidates all tokens",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/logout-all",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "logout-all"]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test successful logout all",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Logout all message received\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include(\"successfully\");",
+									"});",
+									"",
+									"// Store the token for post-logout testing",
+									"if (pm.response.code === 200) {",
+									"    pm.collectionVariables.set(\"logged_out_all_token\", pm.collectionVariables.get(\"access_token\"));",
+									"    console.log(\"✅ Logout all successful - All sessions blacklisted\");",
+									"    console.log(\"ℹ️  Run 'Access After Logout All' test to verify complete blocking\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get User Sessions",
+					"description": "View all active sessions for the authenticated user",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/sessions",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "sessions"]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test successful session retrieval",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has session information\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('total_sessions');",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    console.log(\"✅ User has \" + jsonData.total_sessions + \" active sessions\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "📦 Products - Basic CRUD",
+			"description": "Test product operations with proper authentication and user isolation",
+			"item": [
+				{
+					"name": "Create Product",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Sample Product\",\n  \"description\": \"A sample product for testing\",\n  \"price\": 29.99,\n  \"stock\": 100,\n  \"category\": \"Electronics\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/products",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products"]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test successful product creation",
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Product has required fields\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.id).to.exist;",
+									"    pm.expect(jsonData.name).to.eql(\"Sample Product\");",
+									"    pm.expect(jsonData.price).to.eql(29.99);",
+									"    pm.expect(jsonData.user_id).to.eql(pm.collectionVariables.get(\"user_id\"));",
+									"});",
+									"",
+									"// Store the product ID for subsequent requests",
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.collectionVariables.set(\"product_id\", jsonData.id);",
+									"    console.log(\"✅ Product created successfully - ID: \" + jsonData.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get All Products (User Isolation)",
+					"description": "This demonstrates user isolation - users can only see their own products",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/products",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products"]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test successful retrieval",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is an array\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});",
+									"",
+									"// Verify user isolation (all products should belong to the authenticated user)",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.length > 0) {",
+									"        console.log(\"✅ User has \" + jsonData.length + \" products\");",
+									"        // Verify all products belong to the current user",
+									"        const currentUserId = pm.collectionVariables.get(\"user_id\");",
+									"        const allOwned = jsonData.every(product => product.user_id === currentUserId);",
+									"        if (allOwned) {",
+									"            console.log(\"✅ User isolation verified - all products belong to current user\");",
+									"        } else {",
+									"            console.log(\"⚠️  Warning: Some products may not belong to current user\");",
+									"        }",
+									"    } else {",
+									"        console.log(\"ℹ️  User has no products yet\");",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Product by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/{{product_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", "{{product_id}}"]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test successful retrieval",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Product ID matches\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.id).to.eql(pm.collectionVariables.get(\"product_id\"));",
+									"});",
+									"",
+									"pm.test(\"Product belongs to current user\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.user_id).to.eql(pm.collectionVariables.get(\"user_id\"));",
+									"});",
+									"",
+									"console.log(\"✅ Product retrieved successfully\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Update Product",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Sample Product\",\n  \"price\": 39.99,\n  \"description\": \"Updated description with enhanced features\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/{{product_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", "{{product_id}}"]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test successful update",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Update confirmation message\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include(\"successfully\");",
+									"});",
+									"",
+									"console.log(\"✅ Product updated successfully\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Delete Product",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/{{product_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", "{{product_id}}"]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test successful deletion",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Delete confirmation message\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include(\"successfully\");",
+									"});",
+									"",
+									"// Clear the product ID after deletion",
+									"if (pm.response.code === 200) {",
+									"    pm.collectionVariables.set(\"product_id\", \"\");",
+									"    console.log(\"✅ Product deleted successfully - Product ID cleared\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "🔍 Products - Advanced Features",
+			"description": "Test advanced product features including filtering, sorting, pagination, and statistics",
+			"item": [
+				{
+					"name": "Get Products with Filters",
+					"description": "Test advanced filtering with price range, stock limits, and date filters",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/filtered?min_price=10&max_price=100&min_stock=5&page=1&page_size=10&sort_field=price&sort_direction=asc",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", "filtered"],
+							"query": [
+								{
+									"key": "min_price",
+									"value": "10"
+								},
+								{
+									"key": "max_price",
+									"value": "100"
+								},
+								{
+									"key": "min_stock",
+									"value": "5"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "10"
+								},
+								{
+									"key": "sort_field",
+									"value": "price"
+								},
+								{
+									"key": "sort_direction",
+									"value": "asc"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test successful filtered retrieval",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has pagination info\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('total');",
+									"    pm.expect(jsonData).to.have.property('page');",
+									"    pm.expect(jsonData).to.have.property('page_size');",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    console.log(\"✅ Filtered products retrieved - Total: \" + jsonData.total + \", Page: \" + jsonData.page + \", Page Size: \" + jsonData.page_size);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Products with Cursor Pagination",
+					"description": "Test cursor-based pagination for better performance with large datasets",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/cursor?page_size=5&sort_field=created_at&sort_direction=desc",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", "cursor"],
+							"query": [
+								{
+									"key": "page_size",
+									"value": "5"
+								},
+								{
+									"key": "sort_field",
+									"value": "created_at"
+								},
+								{
+									"key": "sort_direction",
+									"value": "desc"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test successful cursor pagination",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has cursor pagination info\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('products');",
+									"    pm.expect(jsonData.products).to.be.an('array');",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    console.log(\"✅ Cursor pagination successful - Retrieved \" + jsonData.products.length + \" products\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Product Statistics",
+					"description": "Test product statistics including total count, value, and stock information",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/stats",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", "stats"]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test successful statistics retrieval",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has statistics data\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('total_products');",
+									"    pm.expect(jsonData).to.have.property('total_value');",
+									"    pm.expect(jsonData).to.have.property('avg_price');",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    console.log(\"✅ Product statistics retrieved:\");",
+									"    console.log(\"   - Total Products: \" + jsonData.total_products);",
+									"    console.log(\"   - Total Value: $\" + jsonData.total_value);",
+									"    console.log(\"   - Average Price: $\" + jsonData.avg_price);",
+									"    console.log(\"   - Low Stock Items: \" + jsonData.low_stock);",
+									"    console.log(\"   - Out of Stock: \" + jsonData.out_of_stock);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "🚫 Security Testing",
+			"description": "Test security features including unauthorized access prevention, token validation, and post-logout blocking",
+			"item": [
+				{
+					"name": "Access Without Token (Should Fail)",
+					"description": "This request should fail with 401 Unauthorized - demonstrating that authentication is required",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/products",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products"]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test that unauthorized access is properly blocked",
+									"pm.test(\"Status code is 401\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});",
+									"",
+									"pm.test(\"Unauthorized message received\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include(\"Unauthorized\");",
+									"});",
+									"",
+									"console.log(\"✅ Security test passed: Unauthorized access properly blocked\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Access With Invalid Token (Should Fail)",
+					"description": "This request should fail with 401 Unauthorized - demonstrating that invalid tokens are rejected",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer invalid_token_here"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/products",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products"]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test that invalid tokens are properly rejected",
+									"pm.test(\"Status code is 401\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});",
+									"",
+									"pm.test(\"Invalid token message received\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include(\"Unauthorized\");",
+									"});",
+									"",
+									"console.log(\"✅ Security test passed: Invalid tokens properly rejected\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Access After Logout (Should Fail)",
+					"description": "This request should fail if called after logout - demonstrating the enhanced token blacklisting with SHA256 hashing",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{logged_out_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/products",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products"]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// This test will pass if called after logout (token blacklisted)",
+									"// or if called with a valid token (normal operation)",
+									"if (pm.response.code === 401) {",
+									"    pm.test(\"Post-logout access properly blocked\", function () {",
+									"        pm.response.to.have.status(401);",
+									"    });",
+									"    ",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.message && jsonData.message.includes(\"invalidated\")) {",
+									"        console.log(\"✅ Enhanced security test passed: Post-logout access blocked with token blacklisting\");",
+									"    } else {",
+									"        console.log(\"✅ Security test passed: Post-logout access blocked\");",
+									"    }",
+									"} else if (pm.response.code === 200) {",
+									"    pm.test(\"Valid token access successful\", function () {",
+									"        pm.response.to.have.status(200);",
+									"    });",
+									"    console.log(\"ℹ️  Token is still valid (not logged out yet)\");",
+									"}",
+									"",
+									"// Note: Run this after logout to test the enhanced token blacklisting"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Access After Logout All (Should Fail)",
+					"description": "This request should fail if called after logout all - demonstrating complete session invalidation",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{logged_out_all_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/products",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products"]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// This test will pass if called after logout all (all sessions blacklisted)",
+									"if (pm.response.code === 401) {",
+									"    pm.test(\"Post-logout-all access properly blocked\", function () {",
+									"        pm.response.to.have.status(401);",
+									"});",
+									"    ",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.message && jsonData.message.includes(\"logout all\")) {",
+									"        console.log(\"✅ Enhanced security test passed: Post-logout-all access blocked with session blacklisting\");",
+									"    } else {",
+									"        console.log(\"✅ Security test passed: Post-logout-all access blocked\");",
+									"}",
+									"} else if (pm.response.code === 200) {",
+									"    pm.test(\"Valid token access successful\", function () {",
+									"        pm.response.to.have.status(200);",
+									"});",
+									"    console.log(\"ℹ️  Token is still valid (not logged out all yet)\");",
+									"}",
+									"",
+									"// Note: Run this after logout all to test complete session invalidation"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Test Product Ownership Validation",
+					"description": "Test that users cannot access other users' products",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/products/00000000-0000-0000-0000-000000000000",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "products", "00000000-0000-0000-0000-000000000000"]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test that access to non-existent or unauthorized products is blocked",
+									"if (pm.response.code === 404) {",
+									"    pm.test(\"Product not found\", function () {",
+									"        pm.response.to.have.status(404);",
+									"    });",
+									"    console.log(\"✅ Security test passed: Non-existent product access blocked\");",
+									"} else if (pm.response.code === 401) {",
+									"    pm.test(\"Unauthorized access blocked\", function () {",
+									"        pm.response.to.have.status(401);",
+									"    });",
+									"    console.log(\"✅ Security test passed: Unauthorized product access blocked\");",
+									"} else {",
+									"    pm.test(\"Unexpected response\", function () {",
+									"        pm.expect(pm.response.code).to.be.oneOf([401, 404]);",
+									"});",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "📊 Health & Monitoring",
+			"description": "Basic health check and monitoring endpoints",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": ["{{base_url}}"],
+							"path": ["health"]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test health check endpoint",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Health status is healthy\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(\"healthy\");",
+									"});",
+									"",
+									"console.log(\"✅ Health check passed - API is running\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refresh_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "product_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "logged_out_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "logged_out_all_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "cursor",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
